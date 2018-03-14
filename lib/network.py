@@ -968,13 +968,19 @@ class Network(util.DaemonThread):
     def init_headers_file(self):
         b = self.blockchains[0]
         filename = b.path()
-        length = 80 * len(constants.net.CHECKPOINTS) * 2016
-        if not os.path.exists(filename) or os.path.getsize(filename) < length:
-            with open(filename, 'wb') as f:
-                if length>0:
-                    f.seek(length-1)
+        b.update_size()
+
+        length = len(constants.net.CHECKPOINTS) * difficulty_adjustment_interval()
+        if not os.path.exists(filename) or b.size() < length:
+            offset, header_size = b.get_offset(length)
+
+            def fill_header(f):
+                if length > 0:
+                    f.seek(offset-1)
                     f.write(b'\x00')
-        with b.lock:
+
+            blockchain.write_file(filename, fill_header, b.lock, 'wb+')
+
             b.update_size()
 
     def run(self):

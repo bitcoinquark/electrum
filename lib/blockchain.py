@@ -20,9 +20,12 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import gzip
 import os
 import threading
+from io import BytesIO
 
+from .equihash import is_gbp_valid
 from . import util
 from . import bitcoin
 from . import constants
@@ -30,33 +33,86 @@ from .bitcoin import *
 
 MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
 
-def serialize_header(res):
-    s = int_to_hex(res.get('version'), 4) \
-        + rev_hex(res.get('prev_block_hash')) \
-        + rev_hex(res.get('merkle_root')) \
-        + int_to_hex(int(res.get('timestamp')), 4) \
-        + int_to_hex(int(res.get('bits')), 4) \
-        + int_to_hex(int(res.get('nonce')), 4)
-    return s
+USE_COMPRESSSION = False
+COMPRESSION_LEVEL = 1
+
+
+# Encapsulated read/write to switch between non-compressed and compressed files by only changing USE_COMPRESSION flag
+def read_file(filename, callback, lock):
+    if callable(callback):
+        with lock:
+            if USE_COMPRESSSION:
+                with gzip.open(filename, 'rb') as f:
+                    return callback(f)
+            else:
+                with open(filename, 'rb') as f:
+                    return callback(f)
+
+
+def write_file(filename, callback, lock, mode='rb+'):
+    if callable(callback):
+        with lock:
+            if USE_COMPRESSSION:
+                with gzip.open(filename, 'wb', COMPRESSION_LEVEL) as f:
+                    callback(f)
+            else:
+                with open(filename, mode) as f:
+                    callback(f)
+
+def serialize_header(res, height):
+    
+    print (height)
+    
+    if is_bitcoin_quark(height):
+        s = int_to_hex(res.get('version'), 4) \
+            + rev_hex(res.get('prev_block_hash')) \
+            + rev_hex(res.get('merkle_root')) \
+            + int_to_hex(res.get('block_height'), 4) \
+            + rev_hex(res.get('reserved')) \
+            + int_to_hex(int(res.get('timestamp')), 4) \
+            + int_to_hex(int(res.get('bits')), 4) \
+            + rev_hex(res.get('nonce')) \
+            + rev_hex(res.get('solution'))
+            
+        return s
+    else:
+        s = int_to_hex(res.get('version'), 4) \
+            + rev_hex(res.get('prev_block_hash')) \
+            + rev_hex(res.get('merkle_root')) \
+            + int_to_hex(int(res.get('timestamp')), 4) \
+            + int_to_hex(int(res.get('bits')), 4) \
+            + int_to_hex(int(res.get('nonce')), 4)
+        return s
 
 def deserialize_header(s, height):
     hex_to_int = lambda s: int('0x' + bh2u(s[::-1]), 16)
     h = {}
-    h['version'] = hex_to_int(s[0:4])
-    h['prev_block_hash'] = hash_encode(s[4:36])
-    h['merkle_root'] = hash_encode(s[36:68])
-    h['timestamp'] = hex_to_int(s[68:72])
-    h['bits'] = hex_to_int(s[72:76])
-    h['nonce'] = hex_to_int(s[76:80])
-    h['block_height'] = height
+    if is_bitcoin_quark(height):
+        h['version'] = hex_to_int(s[0:4])
+        h['prev_block_hash'] = hash_encode(s[4:36])
+        h['merkle_root'] = hash_encode(s[36:68])
+        h['reserved']= hash_encode(s[72:100])
+        h['timestamp'] = hex_to_int(s[100:104])
+        h['bits'] = hex_to_int(s[104:108])
+        h['nonce'] = hash_encode(s[108:140])
+        h['solution'] = hash_encode(s[140:])
+        h['block_height'] = height
+    else:
+        h['version'] = hex_to_int(s[0:4])
+        h['prev_block_hash'] = hash_encode(s[4:36])
+        h['merkle_root'] = hash_encode(s[36:68])
+        h['timestamp'] = hex_to_int(s[68:72])
+        h['bits'] = hex_to_int(s[72:76])
+        h['nonce'] = hex_to_int(s[76:80])
+        h['block_height'] = height
     return h
 
-def hash_header(header):
+def hash_header(header, height):
     if header is None:
         return '0' * 64
     if header.get('prev_block_hash') is None:
         header['prev_block_hash'] = '00'*32
-    return hash_encode(Hash(bfh(serialize_header(header))))
+    return hash_encode(Hash(bfh(serialize_header(header, height))))
 
 
 blockchains = {}
@@ -127,8 +183,8 @@ class Blockchain(util.PrintError):
         return self.get_hash(self.get_checkpoint()).lstrip('00')[0:10]
 
     def check_header(self, header):
-        header_hash = hash_header(header)
         height = header.get('block_height')
+        header_hash = hash_header(header, height)
         return header_hash == self.get_hash(height)
 
     def fork(parent, header):
@@ -150,7 +206,8 @@ class Blockchain(util.PrintError):
         self._size = os.path.getsize(p)//80 if os.path.exists(p) else 0
 
     def verify_header(self, header, prev_hash, target):
-        _hash = hash_header(header)
+        block_height = header.get('block_height')
+        _hash = hash_header(header, block_height)
         if prev_hash != header.get('prev_block_hash'):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
@@ -160,56 +217,109 @@ class Blockchain(util.PrintError):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
         if int('0x' + _hash, 16) > target:
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
+        if is_bitcoin_quark(block_height):
+            header_bytes = bytes.fromhex(serialize_header(header, block_height))
+            nonce = uint256_from_bytes(bfh(header.get('nonce'))[::-1])
+            solution = bfh(header.get('solution'))[::-1]
+            offset, length = var_int_read(solution, 0)
+            solution = solution[offset:]
+            
+            if not is_gbp_valid(header_bytes, nonce, solution, constants.net.EQUIHASH_N, constants.net.EQUIHASH_K):
+                raise BaseException("Invalid equihash solution")
 
     def verify_chunk(self, index, data):
-        num = len(data) // 80
-        prev_hash = self.get_hash(index * 2016 - 1)
-        target = self.get_target(index-1)
-        for i in range(num):
-            raw_header = data[i*80:(i+1) * 80]
-            header = deserialize_header(raw_header, index*2016 + i)
+        
+        size = len(data)
+        offset = 0
+        prev_hash = self.get_hash(height-1)
+
+        headers = {}
+        target = 0
+
+        while offset < size:
+            header_size = get_header_size(height)
+            raw_header = data[offset:(offset + header_size)]
+            header = deserialize_header(raw_header, height)
+
+            # Check retarget
+            if needs_retarget(height) or target == 0:
+                target = self.get_target(height, headers)
+
             self.verify_header(header, prev_hash, target)
-            prev_hash = hash_header(header)
+
+            headers[height] = header
+            prev_hash = hash_header(header, height)
+            offset += header_size
+            height += 1
 
     def path(self):
         d = util.get_headers_dir(self.config)
         filename = 'blockchain_headers' if self.parent_id is None else os.path.join('forks', 'fork_%d_%d'%(self.parent_id, self.checkpoint))
+        if USE_COMPRESSSION:
+            filename += '.gz'
         return os.path.join(d, filename)
 
-    def save_chunk(self, index, chunk):
-        filename = self.path()
-        d = (index * 2016 - self.checkpoint) * 80
-        if d < 0:
-            chunk = chunk[-d:]
-            d = 0
-        truncate = index >= len(self.checkpoints)
-        self.write(chunk, d, truncate)
+    def save_chunk(self, height, chunk):
+        delta = height - self.checkpoint
+        if delta < 0:
+            chunk = chunk[-delta:]
+            height = self.checkpoint
+            
+        offset, header_size = self.get_offset(height)
+        self.write(chunk, offset, height // difficulty_adjustment_interval() > len(self.checkpoints))
         self.swap_with_parent()
 
     def swap_with_parent(self):
         if self.parent_id is None:
             return
+        
         parent_branch_size = self.parent().height() - self.checkpoint + 1
         if parent_branch_size >= self.size():
             return
+        
         self.print_error("swap", self.checkpoint, self.parent_id)
         parent_id = self.parent_id
         checkpoint = self.checkpoint
         parent = self.parent()
-        with open(self.path(), 'rb') as f:
-            my_data = f.read()
-        with open(parent.path(), 'rb') as f:
-            f.seek((checkpoint - parent.checkpoint)*80)
-            parent_data = f.read(parent_branch_size*80)
+        
+        def my_data_read(f):
+            return f.read()
+        
+        my_data = read_file(self.path(), my_data_read, self.lock)
+
+        delta = (checkpoint - parent.checkpoint)
+        offset = 0
+        size = 0
+
+        if not is_bitcoin_quark(parent.checkpoint) and is_bitcoin_quark(checkpoint):
+            prb = (constants.net.BTQ_FORK_HEIGHT - parent.checkpoint)
+            pob = checkpoint - constants.net.BTQ_FORK_HEIGHT
+            offset = (prb * constants.net.HEADER_SIZE_LEGACY) + (pob * constants.net.HEADER_SIZE)
+            size = parent_branch_size * constants.net.HEADER_SIZE
+        else:
+            offset = delta * get_header_size(parent.checkpoint)
+            size = parent_branch_size * constants.net.HEADER_SIZE
+
+        def parent_data_read(f):
+            f.seek(offset)
+            return f.read(size)
+
+        parent_data = read_file(parent.path(), parent_data_read, parent.lock)
+        
         self.write(parent_data, 0)
-        parent.write(my_data, (checkpoint - parent.checkpoint)*80)
+        parent.write(my_data, offset)
         # store file path
         for b in blockchains.values():
             b.old_path = b.path()
         # swap parameters
-        self.parent_id = parent.parent_id; parent.parent_id = parent_id
-        self.checkpoint = parent.checkpoint; parent.checkpoint = checkpoint
-        self._size = parent._size; parent._size = parent_branch_size
+        self.parent_id = parent.parent_id
+        parent.parent_id = parent_id
+
+        self.checkpoint = parent.checkpoint
+        parent.checkpoint = checkpoint
+
+        self._size = parent._size
+        parent._size = parent_branch_size
         # move files
         for b in blockchains.values():
             if b in [self, parent]: continue
@@ -222,23 +332,33 @@ class Blockchain(util.PrintError):
 
     def write(self, data, offset, truncate=True):
         filename = self.path()
-        with self.lock:
-            with open(filename, 'rb+') as f:
-                if truncate and offset != self._size*80:
-                    f.seek(offset)
-                    f.truncate()
+        current_offset, header_size = self.get_offset(self.size())
+
+        def write_data(f):
+            if truncate and offset != current_offset:
                 f.seek(offset)
-                f.write(data)
-                f.flush()
-                os.fsync(f.fileno())
-            self.update_size()
+                f.truncate()
+            f.seek(offset)
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+
+        write_file(filename, write_data, self.lock)
+
+        self.update_size()
 
     def save_header(self, header):
-        delta = header.get('block_height') - self.checkpoint
-        data = bfh(serialize_header(header))
-        assert delta == self.size()
-        assert len(data) == 80
-        self.write(data, delta*80)
+        height = header.get('block_height')
+        delta = height - self.checkpoint
+        ser_header = serialize_header(header, height)
+
+        offset, header_size = self.get_offset(height)
+        data = bfh(ser_header)
+        length = len(data)
+
+        assert delta == self.get_branch_size()
+        assert length == header_size
+        self.write(data, offset)
         self.swap_with_parent()
 
     def read_header(self, height):
@@ -249,13 +369,18 @@ class Blockchain(util.PrintError):
             return self.parent().read_header(height)
         if height > self.height():
             return
-        delta = height - self.checkpoint
+        
+        offset, header_size = self.get_offset(height)
+
         name = self.path()
-        if os.path.exists(name):
-            with open(name, 'rb') as f:
-                f.seek(delta * 80)
-                h = f.read(80)
-        if h == bytes([0])*80:
+
+        def get_header(f):
+            f.seek(offset)
+            return f.read(header_size)
+
+        h = read_file(name, get_header, self.lock)
+
+        if len(h) != header_size or h == bytes([0])*header_size:
             return None
         return deserialize_header(h, height)
 
@@ -270,7 +395,7 @@ class Blockchain(util.PrintError):
             h, t = self.checkpoints[index]
             return h
         else:
-            return hash_header(self.read_header(height))
+            return hash_header(self.read_header(height), height)
 
     def get_target(self, index):
         # compute target from chunk x, used in chunk x+1
@@ -342,6 +467,19 @@ class Blockchain(util.PrintError):
         except BaseException as e:
             self.print_error('verify_chunk %d failed'%idx, str(e))
             return False
+        
+    def get_offset(self, height):
+        delta = height - self.checkpoint
+        header_size = get_header_size(height)
+
+        if is_bitcoin_quark(height) and not is_bitcoin_quark(self.checkpoint):
+            pr = (constants.net.BTQ_FORK_HEIGHT - self.checkpoint) * (constants.net.HEADER_SIZE_LEGACY)
+            po = (height - constants.net.BTQ_FORK_HEIGHT) * (constants.net.HEADER_SIZE)
+            offset = pr + po
+        else:
+            offset = abs(delta) * header_size
+
+        return offset, header_size
 
     def get_checkpoints(self):
         # for each chunk, store the hash of the last block and the target after the chunk

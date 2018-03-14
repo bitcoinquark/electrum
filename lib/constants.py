@@ -40,14 +40,30 @@ def read_json(filename, default):
 class BitcoinMainnet:
 
     TESTNET = False
+    REGTEST = False
     WIF_PREFIX = 0x80
     ADDRTYPE_P2PKH = 0
     ADDRTYPE_P2SH = 5
     SEGWIT_HRP = "bc"
     GENESIS = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
-    DEFAULT_PORTS = {'t': '50001', 's': '50002'}
+    DEFAULT_PORTS = {'t': '52001', 's': '52002'}
     DEFAULT_SERVERS = read_json('servers.json', {})
     CHECKPOINTS = read_json('checkpoints.json', [])
+    
+    BTQ_FORK_HEIGHT = 520520
+    PREMINE_WINDOW = 100
+    EQUIHASH_N = 200
+    EQUIHASH_K = 9
+    HEADER_SIZE_LEGACY = 80
+    HEADER_SIZE = 176
+    POW_LIMIT = 0x0007ffffffff0000000000000000000000000000000000000000000000000000
+    POW_LIMIT_START = 0x0007ffffffff0000000000000000000000000000000000000000000000000000
+    POW_LIMIT_LEGACY = 0x00000000ffff0000000000000000000000000000000000000000000000000000
+    POW_AVERAGING_WINDOW = 17
+    POW_MAX_ADJUST_DOWN = 32
+    POW_MAX_ADJUST_UP = 16
+    POW_TARGET_SPACING = 10 * 60
+    POW_TARGET_TIMESPAN_LEGACY = 14 * 24 * 60 * 60        
 
     XPRV_HEADERS = {
         'standard':    0x0488ade4,  # xprv
@@ -68,15 +84,74 @@ class BitcoinMainnet:
 class BitcoinTestnet:
 
     TESTNET = True
+    REGTEST = False
     WIF_PREFIX = 0xef
     ADDRTYPE_P2PKH = 111
     ADDRTYPE_P2SH = 196
     SEGWIT_HRP = "tb"
     GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
-    DEFAULT_PORTS = {'t': '51001', 's': '51002'}
+    DEFAULT_PORTS = {'t': '53001', 's': '53002'}
     DEFAULT_SERVERS = read_json('servers_testnet.json', {})
     CHECKPOINTS = read_json('checkpoints_testnet.json', [])
+    
+    BTQ_FORK_HEIGHT = 1259790
+    PREMINE_WINDOW = 100
+    EQUIHASH_N = 200
+    EQUIHASH_K = 9
+    HEADER_SIZE_LEGACY = 80
+    HEADER_SIZE = 176    
+    POW_LIMIT = 0x007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    POW_LIMIT_START = 0x007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    POW_LIMIT_LEGACY = 0x00000000ffff0000000000000000000000000000000000000000000000000000
+    POW_AVERAGING_WINDOW = 17
+    POW_MAX_ADJUST_DOWN = 32
+    POW_MAX_ADJUST_UP = 16
+    POW_TARGET_SPACING = 10 * 60
+    POW_TARGET_TIMESPAN_LEGACY = 14 * 24 * 60 * 60      
+    
+    XPRV_HEADERS = {
+        'standard':    0x04358394,  # tprv
+        'p2wpkh-p2sh': 0x044a4e28,  # uprv
+        'p2wsh-p2sh':  0x024285b5,  # Uprv
+        'p2wpkh':      0x045f18bc,  # vprv
+        'p2wsh':       0x02575048,  # Vprv
+    }
+    XPUB_HEADERS = {
+        'standard':    0x043587cf,  # tpub
+        'p2wpkh-p2sh': 0x044a5262,  # upub
+        'p2wsh-p2sh':  0x024285ef,  # Upub
+        'p2wpkh':      0x045f1cf6,  # vpub
+        'p2wsh':       0x02575483,  # Vpub
+    }
 
+class BitcoinRegtest:
+    
+    TESTNET = True
+    REGTEST = True
+    WIF_PREFIX = 0xef
+    ADDRTYPE_P2PKH = 111
+    ADDRTYPE_P2SH = 196
+    SEGWIT_HRP = "tb"
+    GENESIS = "0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"
+    DEFAULT_PORTS = {'t': '54001', 's': '54002'}
+    DEFAULT_SERVERS = read_json('servers_regtest.json', {})
+    CHECKPOINTS = read_json('checkpoints_regtest.json', [])
+    
+    BTQ_FORK_HEIGHT = 2500
+    PREMINE_WINDOW = 100
+    EQUIHASH_N = 48
+    EQUIHASH_K = 5
+    HEADER_SIZE_LEGACY = 80
+    HEADER_SIZE = 176
+    POW_LIMIT = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    POW_LIMIT_START = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    POW_LIMIT_LEGACY = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    POW_AVERAGING_WINDOW = 17
+    POW_MAX_ADJUST_DOWN = 32
+    POW_MAX_ADJUST_UP = 16
+    POW_TARGET_SPACING = 10 * 60
+    POW_TARGET_TIMESPAN_LEGACY = 14 * 24 * 60 * 60  
+      
     XPRV_HEADERS = {
         'standard':    0x04358394,  # tprv
         'p2wpkh-p2sh': 0x044a4e28,  # uprv
@@ -93,6 +168,7 @@ class BitcoinTestnet:
     }
 
 
+
 # don't import net directly, import the module instead (so that net is singleton)
 net = BitcoinMainnet
 
@@ -105,3 +181,7 @@ def set_mainnet():
 def set_testnet():
     global net
     net = BitcoinTestnet
+    
+def set_regtest():
+    global net
+    net = BitcoinRegtest 

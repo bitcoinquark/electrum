@@ -1005,3 +1005,28 @@ def bip32_private_key(sequence, k, chain):
     for i in sequence:
         k, chain = CKD_priv(k, chain, i)
     return k
+
+
+def averaging_window_timespan():
+    return constants.net.POW_AVERAGING_WINDOW * constants.net.POW_TARGET_SPACING
+
+def min_actual_timespan():
+    return (averaging_window_timespan() * (100 - constants.net.POW_MAX_ADJUST_UP)) // 100
+
+def max_actual_timespan():
+    return (averaging_window_timespan() * (100 + constants.net.POW_MAX_ADJUST_DOWN)) // 100
+
+def difficulty_adjustment_interval():
+    return constants.net.POW_TARGET_TIMESPAN_LEGACY // constants.net.POW_TARGET_SPACING
+
+def is_bitcoin_quark(height):
+    return height >= constants.net.BTQ_FORK_HEIGHT
+
+def needs_retarget(height):
+    return is_bitcoin_quark(height) or (height % difficulty_adjustment_interval() == 0)
+
+def get_header_size(height):
+    if is_bitcoin_quark(height):
+        return constants.net.HEADER_SIZE;
+    else:
+        return constants.net.HEADER_SIZE_LEGACY;
