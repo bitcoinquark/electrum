@@ -163,6 +163,29 @@ def var_int(i):
     else:
         return "ff"+int_to_hex(i,8)
 
+def var_int_read(value, start):
+    size = value[start]
+    start += 1
+
+    if size == 253:
+        (size,) = unpack_from('<H', value, start)
+        start += 2
+    elif size == 254:
+        (size,) = unpack_from('<I', value, start)
+        start += 4
+    elif size == 255:
+        (size,) = unpack_from('<Q', value, start)
+        start += 8
+
+    return start, size
+
+
+def uint256_from_bytes(s):
+    r = 0
+    t = unpack("<IIIIIIII", s[:32])
+    for i in range(8):
+        r += t[i] << (i * 32)
+    return r
 
 def op_push(i):
     if i<0x4c:
