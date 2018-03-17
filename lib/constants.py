@@ -55,7 +55,7 @@ class BitcoinMainnet:
     EQUIHASH_N = 200
     EQUIHASH_K = 9
     HEADER_SIZE_LEGACY = 80
-    HEADER_SIZE = 176
+    HEADER_SIZE = 1487
     POW_LIMIT = 0x0007ffffffff0000000000000000000000000000000000000000000000000000
     POW_LIMIT_START = 0x0007ffffffff0000000000000000000000000000000000000000000000000000
     POW_LIMIT_LEGACY = 0x00000000ffff0000000000000000000000000000000000000000000000000000
@@ -99,7 +99,7 @@ class BitcoinTestnet:
     EQUIHASH_N = 200
     EQUIHASH_K = 9
     HEADER_SIZE_LEGACY = 80
-    HEADER_SIZE = 176    
+    HEADER_SIZE = 1487    
     POW_LIMIT = 0x007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
     POW_LIMIT_START = 0x007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
     POW_LIMIT_LEGACY = 0x00000000ffff0000000000000000000000000000000000000000000000000000
@@ -142,7 +142,7 @@ class BitcoinRegtest:
     EQUIHASH_N = 48
     EQUIHASH_K = 5
     HEADER_SIZE_LEGACY = 80
-    HEADER_SIZE = 176
+    HEADER_SIZE = 177
     POW_LIMIT = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
     POW_LIMIT_START = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
     POW_LIMIT_LEGACY = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff

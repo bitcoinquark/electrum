@@ -61,8 +61,6 @@ def write_file(filename, callback, lock, mode='rb+'):
 
 def serialize_header(res, height):
     
-    print (height)
-    
     if is_bitcoin_quark(height):
         s = int_to_hex(res.get('version'), 4) \
             + rev_hex(res.get('prev_block_hash')) \
@@ -156,14 +154,16 @@ class Blockchain(util.PrintError):
     """
 
     def __init__(self, config, checkpoint, parent_id):
+        self.fork_byte_offset = constants.net.BTQ_FORK_HEIGHT * constants.net.HEADER_SIZE_LEGACY
         self.config = config
         self.catch_up = None # interface catching up
         self.checkpoint = checkpoint
         self.checkpoints = constants.net.CHECKPOINTS
         self.parent_id = parent_id
         self.lock = threading.Lock()
-        with self.lock:
-            self.update_size()
+        self._size = 0
+        self.update_size()
+        util.set_verbosity(True)
 
     def parent(self):
         return blockchains[self.parent_id]
@@ -203,9 +203,30 @@ class Blockchain(util.PrintError):
 
     def update_size(self):
         p = self.path()
-        self._size = os.path.getsize(p)//80 if os.path.exists(p) else 0
+        if os.path.exists(p):
+            def get_offset(f):
+                return f.seek(0, 2)
+            
+            size = read_file(p, get_offset, self.lock)
+            
+            if is_bitcoin_quark(self.checkpoint):
+                self._size = size // constants.net.HEADER_SIZE
+            else:
+                checkpoint_size = self.checkpoint * constants.net.HEADER_SIZE_LEGACY
+                full_size = (size + checkpoint_size)
+                
+                # Check fork boundary crossing
+                if full_size <= self.fork_byte_offset:
+                    self._size = size // constants.net.HEADER_SIZE_LEGACY
+                else:
+                    prb = (self.fork_byte_offset - checkpoint_size) // constants.net.HEADER_SIZE_LEGACY
+                    pob = (full_size - self.fork_byte_offset) // constants.net.HEADER_SIZE
+                    self._size = prb + pob
+        else:
+            self._size = 0
 
     def verify_header(self, header, prev_hash, target):
+        
         block_height = header.get('block_height')
         _hash = hash_header(header, block_height)
         if prev_hash != header.get('prev_block_hash'):
@@ -227,28 +248,27 @@ class Blockchain(util.PrintError):
             if not is_gbp_valid(header_bytes, nonce, solution, constants.net.EQUIHASH_N, constants.net.EQUIHASH_K):
                 raise BaseException("Invalid equihash solution")
 
-    def verify_chunk(self, index, data):
-        
+    def verify_chunk(self, height, data):
         size = len(data)
         offset = 0
         prev_hash = self.get_hash(height-1)
-
         headers = {}
         target = 0
-
+        
         while offset < size:
             header_size = get_header_size(height)
             raw_header = data[offset:(offset + header_size)]
             header = deserialize_header(raw_header, height)
-
+            headers[height] = header
             # Check retarget
             if needs_retarget(height) or target == 0:
                 target = self.get_target(height, headers)
-
+                
             self.verify_header(header, prev_hash, target)
 
-            headers[height] = header
+            #print ("after verify_header")
             prev_hash = hash_header(header, height)
+            #print ("after verify_header")
             offset += header_size
             height += 1
 
@@ -382,7 +402,17 @@ class Blockchain(util.PrintError):
 
         if len(h) != header_size or h == bytes([0])*header_size:
             return None
+
         return deserialize_header(h, height)
+
+    def get_header(self, height, headers=None):
+        
+        if headers is None:
+            headers = {}
+        
+        header = headers[height] if height in headers else self.read_header(height)
+        
+        return header
 
     def get_hash(self, height):
         if height == -1:
@@ -397,45 +427,181 @@ class Blockchain(util.PrintError):
         else:
             return hash_header(self.read_header(height), height)
 
-    def get_target(self, index):
+    def get_target(self, height, headers=None):
+        
+        if headers is None:
+            headers = {}
+            
+        # Check for genesis
+        if height == 0:
+            new_target = constants.net.POW_LIMIT_LEGACY     
+            return new_target;   
+        if height < constants.net.BTQ_FORK_HEIGHT:
+            new_target = self.get_bitcoin_target(height, headers)
+            return new_target;
+        elif height < constants.net.BTQ_FORK_HEIGHT + constants.net.PREMINE_WINDOW:
+            new_target = constants.net.POW_LIMIT
+            return new_target;
+        elif height < constants.net.BTQ_FORK_HEIGHT + constants.net.PREMINE_WINDOW + constants.net.POW_AVERAGING_WINDOW:
+            new_target = constants.net.POW_LIMIT_START
+            return new_target;
+        
+        prior = self.get_header(height - 1, headers)
+        bits = prior['bits']
+        
+        #difficulty adjustement
+        mtp_6blocks = (self.get_median_time_past(headers, height - 1)
+                       - self.get_median_time_past(headers, height - 7))
+        
+        
+        if mtp_6blocks > 12 * 3600:
+            # If it took over 12hrs to produce the last 6 blocks, increase the
+            # target by 25% (reducing difficulty by 20%).
+            new_target = self.bits_to_target(bits)
+            new_target += new_target >> 2
+            new_target = min(constants.net.POW_LIMIT, new_target);
+            return new_target;
+        
+        #simple moving average
+        new_target = self.get_bitcoinquark_target(height, headers)
+        
+        return new_target
+    
+    def get_bitcoin_target(self, height, headers):
+        
+        if height == 0:
+            new_target = constants.net.POW_LIMIT_LEGACY     
+            return new_target;        
+           
+        index = height // 2016 - 1
         # compute target from chunk x, used in chunk x+1
-        if constants.net.TESTNET:
-            return 0
         if index == -1:
-            return MAX_TARGET
+            return constants.net.POW_LIMIT_LEGACY
+        
+        # from checkpoints
         if index < len(self.checkpoints):
             h, t = self.checkpoints[index]
             return t
-        # new target
-        first = self.read_header(index * 2016)
-        last = self.read_header(index * 2016 + 2015)
-        bits = last.get('bits')
-        target = self.bits_to_target(bits)
-        nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 14 * 24 * 60 * 60
-        nActualTimespan = max(nActualTimespan, nTargetTimespan // 4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
-        new_target = min(MAX_TARGET, (target * nActualTimespan) // nTargetTimespan)
+        
+        if height % difficulty_adjustment_interval() != 0:
+            if constants.net.TESTNET:
+                cur = self.get_header(height, headers)
+                # Special testnet handling
+                if cur.get('timestamp') > last.get('timestamp') + constants.net.POW_TARGET_SPACING * 2:
+                    new_target = constants.net.POW_LIMIT_LEGACY
+                else:
+                    # Return the last non-special-min-difficulty-rules-block
+                    prev_height = last_height - 1
+                    prev = self.get_header(prev_height, headers)
+
+                    while prev is not None and last.get('block_height') % difficulty_adjustment_interval() != 0 \
+                            and last.get('bits') == constants.net.POW_LIMIT:
+                        last = prev
+                        prev_height -= 1
+                        prev = self.get_header(prev_height, headers)
+
+                    new_target = self.bits_to_target(last.get('bits'))
+            else:
+                new_target = self.bits_to_target(last.get('bits'))
+        else:
+            # new target
+            first = self.read_header(index * 2016)
+            last = self.read_header(index * 2016 + 2015)
+            bits = last.get('bits')
+            target = self.bits_to_target(bits)
+            nActualTimespan = last.get('timestamp') - first.get('timestamp')
+            nTargetTimespan = 14 * 24 * 60 * 60
+            nActualTimespan = max(nActualTimespan, nTargetTimespan // 4)
+            nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
+            new_target = min(constants.net.POW_LIMIT_LEGACY, (target * nActualTimespan) // nTargetTimespan)
+            
         return new_target
+    
+    def get_bitcoinquark_target(self, height, headers):
+        
+        pow_limit = constants.net.POW_LIMIT
+        height -= 1
+        last = self.get_header(height, headers)
+        
+        if last is None:
+            new_target = pow_limit
+        else:
+            first = last
+            total = 0
+            i = 0
+
+            while i < constants.net.POW_AVERAGING_WINDOW and first is not None:
+                total += self.bits_to_target(first.get('bits'))
+                prev_height = height - i - 1
+                first = self.get_header(prev_height, headers)
+                i += 1
+
+            # This should never happen else we have a serious problem
+            assert first is not None
+            
+            avg = total // constants.net.POW_AVERAGING_WINDOW
+            actual_timespan = self.get_median_time_past(headers, last.get('block_height')) \
+                - self.get_median_time_past(headers, first.get('block_height'))
+
+            if actual_timespan < min_actual_timespan():
+                actual_timespan = min_actual_timespan()
+
+            if actual_timespan > max_actual_timespan():
+                actual_timespan = max_actual_timespan()
+
+            avg = avg // averaging_window_timespan()
+            avg *= actual_timespan
+
+            if avg > pow_limit:
+                avg = pow_limit
+
+            new_target = int(avg)
+
+        return new_target      
+        
+    
+    def get_median_time_past(self, headers, height):
+        if height < 0:
+            return 0
+        header = self.get_header(height, headers)
+        times = []
+        i = 0
+        
+        while i < 11 and header is not None:
+            times.append(header.get('timestamp'))
+            prev_height = height - i - 1
+            header = self.get_header(prev_height, headers)
+            i += 1
+            
+        return sorted(times)[len(times) // 2]    
 
     def bits_to_target(self, bits):
-        bitsN = (bits >> 24) & 0xff
-        if not (bitsN >= 0x03 and bitsN <= 0x1d):
-            raise BaseException("First part of bits should be in [0x03, 0x1d]")
-        bitsBase = bits & 0xffffff
-        if not (bitsBase >= 0x8000 and bitsBase <= 0x7fffff):
-            raise BaseException("Second part of bits should be in [0x8000, 0x7fffff]")
-        return bitsBase << (8 * (bitsN-3))
+        size = bits >> 24
+        word = bits & 0x007fffff
+
+        if size <= 3:
+            word >>= 8 * (3 - size)
+            ret = word
+        else:
+            ret = word
+            ret <<= 8 * (size - 3)
+
+        return ret
 
     def target_to_bits(self, target):
-        c = ("%064x" % target)[2:]
-        while c[:2] == '00' and len(c) > 6:
-            c = c[2:]
-        bitsN, bitsBase = len(c) // 2, int('0x' + c[:6], 16)
-        if bitsBase >= 0x800000:
-            bitsN += 1
-            bitsBase >>= 8
-        return bitsN << 24 | bitsBase
+        assert target >= 0
+        nsize = (target.bit_length() + 7) // 8
+        if nsize <= 3:
+            c = target << (8 * (3 - nsize))
+        else:
+            c = target >> (8 * (nsize - 3))
+        if c & 0x00800000:
+            c >>= 8
+            nsize += 1
+        assert (c & ~0x007fffff) == 0
+        assert nsize < 256
+        c |= nsize << 24
+        return c
 
     def can_connect(self, header, check_height=True):
         height = header['block_height']
@@ -443,14 +609,15 @@ class Blockchain(util.PrintError):
             #self.print_error("cannot connect at height", height)
             return False
         if height == 0:
-            return hash_header(header) == constants.net.GENESIS
+            return hash_header(header, height) == constants.net.GENESIS
         try:
             prev_hash = self.get_hash(height - 1)
         except:
             return False
         if prev_hash != header.get('prev_block_hash'):
             return False
-        target = self.get_target(height // 2016 - 1)
+        
+        target = self.get_target(height, {height: header})
         try:
             self.verify_header(header, prev_hash, target)
         except BaseException as e:
@@ -460,9 +627,9 @@ class Blockchain(util.PrintError):
     def connect_chunk(self, idx, hexdata):
         try:
             data = bfh(hexdata)
-            self.verify_chunk(idx, data)
-            #self.print_error("validated chunk %d" % idx)
-            self.save_chunk(idx, data)
+            self.verify_chunk(idx * 2016, data)
+            self.print_error("validated chunk %d" % idx)
+            self.save_chunk(idx * 2016, data)
             return True
         except BaseException as e:
             self.print_error('verify_chunk %d failed'%idx, str(e))
@@ -486,7 +653,10 @@ class Blockchain(util.PrintError):
         cp = []
         n = self.height() // 2016
         for index in range(n):
-            h = self.get_hash((index+1) * 2016 -1)
-            target = self.get_target(index)
+            height = (index+1) * 2016
+            if is_bitcoin_quark(height):
+                break          
+            h = self.get_hash(height - 1)
+            target = self.get_target(height)
             cp.append((h, target))
         return cp
