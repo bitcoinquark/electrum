@@ -458,7 +458,7 @@ def parse_input(vds):
                 print_error('failed to parse scriptSig', bh2u(scriptSig))
         else:
             d['scriptSig'] = ''
-
+            
     return d
 
 
@@ -872,15 +872,14 @@ class Transaction:
     def serialize_preimage(self, i):
         nVersion = int_to_hex(self.version, 4)
         nHashType = int_to_hex(self.nHashType(), 4)
-        nForkHashType = get_fork_hashtype(nHashType)
         nLocktime = int_to_hex(self.locktime, 4)
         inputs = self.inputs()
         outputs = self.outputs()
         txin = inputs[i]
-        if True or self.is_segwit_input(txin):
-            hashPrevouts = Hash(''.join(self.serialize_outpoint(txin) for txin in inputs).decode('hex')).encode('hex')
-            hashSequence = Hash(''.join(int_to_hex(txin.get('sequence', 0xffffffff - 1), 4) for txin in inputs).decode('hex')).encode('hex')
-            hashOutputs = Hash(''.join(self.serialize_output(o) for o in outputs).decode('hex')).encode('hex')
+        if self.is_segwit_input(txin):
+            hashPrevouts = bh2u(Hash(bfh(''.join(self.serialize_outpoint(txin) for txin in inputs))))
+            hashSequence = bh2u(Hash(bfh(''.join(int_to_hex(txin.get('sequence', 0xffffffff - 1), 4) for txin in inputs))))
+            hashOutputs = bh2u(Hash(bfh(''.join(self.serialize_output(o) for o in outputs))))
             outpoint = self.serialize_outpoint(txin)
             preimage_script = self.get_preimage_script(txin)
             scriptCode = var_int(len(preimage_script) // 2) + preimage_script

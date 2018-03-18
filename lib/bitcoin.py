@@ -31,6 +31,7 @@ import json
 
 import ecdsa
 import pyaes
+from struct import unpack_from, unpack
 
 from .util import bfh, bh2u, to_string
 from . import version
