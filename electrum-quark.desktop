@@ -3,7 +3,7 @@
 
 [Desktop Entry]
 Comment=Lightweight Bitcoin Quark Client
-Exec=electrum %u
+Exec=electrum-quark %u
 GenericName[en_US]=Bitcoin Quark Wallet
 GenericName=Bitcoin Quark Wallet
 Icon=electrum-quark
