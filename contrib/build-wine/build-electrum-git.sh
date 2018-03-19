@@ -52,8 +52,8 @@ popd
 rm -rf $WINEPREFIX/drive_c/electrum-quark
 cp -r electrum $WINEPREFIX/drive_c/electrum-quark
 cp electrum/LICENCE .
-cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum/lib/
-cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum/gui/qt/
+cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-quark/lib/
+cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-quark/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt
