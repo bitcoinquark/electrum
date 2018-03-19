@@ -159,7 +159,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.config.get("is_maximized"):
             self.showMaximized()
 
-        self.setWindowIcon(QIcon(":icons/electrum.png"))
+        self.setWindowIcon(QIcon(":icons/electrum-quark.png"))
         self.init_menubar()
 
         wrtabs = weakref.proxy(tabs)
@@ -372,7 +372,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.setGeometry(100, 100, 840, 400)
 
     def watching_only_changed(self):
-        name = "Electrum Testnet" if constants.net.TESTNET else "Electrum"
+        name = "Electrum Quark Testnet" if constants.net.TESTNET else "Electrum Quark"
         title = '%s %s  -  %s' % (name, self.wallet.electrum_version,
                                         self.wallet.basename())
         extra = [self.wallet.storage.get('wallet_type', '?')]
@@ -390,8 +390,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.wallet.is_watching_only():
             msg = ' '.join([
                 _("This wallet is watching-only."),
-                _("This means you will not be able to spend Bitcoins with it."),
-                _("Make sure you own the seed phrase or the private keys, before you request Bitcoins to be sent to this wallet.")
+                _("This means you will not be able to spend Bitcoin Quark with it."),
+                _("Make sure you own the seed phrase or the private keys, before you request Bitcoin Quark to be sent to this wallet.")
             ])
             self.show_warning(msg, title=_('Information'))
 
@@ -415,7 +415,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 shutil.copy2(path, new_path)
                 self.show_message(_("A copy of your wallet file was created in")+" '%s'" % str(new_path), title=_("Wallet backup created"))
             except BaseException as reason:
-                self.show_critical(_("Electrum was unable to copy your wallet file to the specified location.") + "\n" + str(reason), title=_("Unable to create backup"))
+                self.show_critical(_("Electrum Quark was unable to copy your wallet file to the specified location.") + "\n" + str(reason), title=_("Unable to create backup"))
 
     def update_recently_visited(self, filename):
         recent = self.config.get('recently_open', [])
@@ -510,7 +510,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu = menubar.addMenu(_("&Tools"))
 
         # Settings / Preferences are all reserved keywords in OSX using this as work around
-        tools_menu.addAction(_("Electrum preferences") if sys.platform == 'darwin' else _("Preferences"), self.settings_dialog)
+        tools_menu.addAction(_("Electrum Quark preferences") if sys.platform == 'darwin' else _("Preferences"), self.settings_dialog)
         tools_menu.addAction(_("&Network"), lambda: self.gui_object.show_network_dialog(self))
         tools_menu.addAction(_("&Plugins"), self.plugins_dialog)
         tools_menu.addSeparator()
@@ -530,7 +530,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         help_menu = menubar.addMenu(_("&Help"))
         help_menu.addAction(_("&About"), self.show_about)
-        help_menu.addAction(_("&Official website"), lambda: webbrowser.open("http://electrum.org"))
+        help_menu.addAction(_("&Official website"), lambda: webbrowser.open("http://bitcoinquark.org"))
         help_menu.addSeparator()
         help_menu.addAction(_("&Documentation"), lambda: webbrowser.open("http://docs.electrum.org/")).setShortcut(QKeySequence.HelpContents)
         help_menu.addAction(_("&Report Bug"), self.show_report_bug)
@@ -543,12 +543,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         d = self.network.get_donation_address()
         if d:
             host = self.network.get_parameters()[0]
-            self.pay_to_URI('bitcoin:%s?message=donation for %s'%(d, host))
+            self.pay_to_URI('bitcoinquark:%s?message=donation for %s'%(d, host))
         else:
             self.show_error(_('No donation address for this server'))
 
     def show_about(self):
-        QMessageBox.about(self, "Electrum",
+        QMessageBox.about(self, "Electrum Quark",
             _("Version")+" %s" % (self.wallet.electrum_version) + "\n\n" +
                 _("Electrum's focus is speed, with low resource usage and simplifying Bitcoin. You do not need to perform regular backups, because your wallet can be recovered from a secret phrase that you can memorize or write on paper. Startup times are instant because it operates in conjunction with high-performance servers that handle the most complicated parts of the Bitcoin system."  + "\n\n" +
                 _("Uses icons from the Icons8 icon pack (icons8.com).")))
@@ -556,11 +556,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def show_report_bug(self):
         msg = ' '.join([
             _("Please report any bugs as issues on github:<br/>"),
-            "<a href=\"https://github.com/spesmilo/electrum/issues\">https://github.com/spesmilo/electrum/issues</a><br/><br/>",
-            _("Before reporting a bug, upgrade to the most recent version of Electrum (latest release or git HEAD), and include the version number in your report."),
+            "<a href=\"https://github.com/bitcoinquark/electrum/issues\">https://github.com/bitcoinquark/electrum/issues</a><br/><br/>",
+            _("Before reporting a bug, upgrade to the most recent version of Electrum Quark (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
-        self.show_message(msg, title="Electrum - " + _("Reporting Bugs"))
+        self.show_message(msg, title="Electrum Quark - " + _("Reporting Bugs"))
 
     def notify_transactions(self):
         if not self.network or not self.network.is_connected():
@@ -590,9 +590,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if self.tray:
             try:
                 # this requires Qt 5.9
-                self.tray.showMessage("Electrum", message, QIcon(":icons/electrum_dark_icon"), 20000)
+                self.tray.showMessage("Electrum Quark", message, QIcon(":icons/electrum-quark_dark_icon"), 20000)
             except TypeError:
-                self.tray.showMessage("Electrum", message, QSystemTrayIcon.Information, 20000)
+                self.tray.showMessage("Electrum Quark", message, QSystemTrayIcon.Information, 20000)
 
 
 
@@ -778,7 +778,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.receive_address_e = ButtonsLineEdit()
         self.receive_address_e.addCopyButton(self.app)
         self.receive_address_e.setReadOnly(True)
-        msg = _('Bitcoin address where the payment should be received. Note that each payment request uses a different Bitcoin address.')
+        msg = _('Bitcoin Quark address where the payment should be received. Note that each payment request uses a different Bitcoin Quark address.')
         self.receive_address_label = HelpLabel(_('Receiving address'), msg)
         self.receive_address_e.textChanged.connect(self.update_receive_qr)
         self.receive_address_e.setFocusPolicy(Qt.NoFocus)
@@ -808,8 +808,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         msg = ' '.join([
             _('Expiration date of your request.'),
             _('This information is seen by the recipient if you send them a signed payment request.'),
-            _('Expired requests have to be deleted manually from your list, in order to free the corresponding Bitcoin addresses.'),
-            _('The bitcoin address never expires and will always be part of this electrum wallet.'),
+            _('Expired requests have to be deleted manually from your list, in order to free the corresponding Bitcoin Quark addresses.'),
+            _('The bitcoin quark address never expires and will always be part of this electrum quark wallet.'),
         ])
         grid.addWidget(HelpLabel(_('Request expires'), msg), 3, 0)
         grid.addWidget(self.expires_combo, 3, 1)
@@ -1035,7 +1035,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.amount_e = BTCAmountEdit(self.get_decimal_point)
         self.payto_e = PayToEdit(self)
         msg = _('Recipient of the funds.') + '\n\n'\
-              + _('You may enter a Bitcoin address, a label from your list of contacts (a list of completions will be proposed), or an alias (email-like address that forwards to a Bitcoin address)')
+              + _('You may enter a Bitcoin Quark address, a label from your list of contacts (a list of completions will be proposed), or an alias (email-like address that forwards to a Bitcoin Quark address)')
         payto_label = HelpLabel(_('Pay to'), msg)
         grid.addWidget(payto_label, 1, 0)
         grid.addWidget(self.payto_e, 1, 1, 1, -1)
@@ -1082,7 +1082,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         hbox.addStretch(1)
         grid.addLayout(hbox, 4, 4)
 
-        msg = _('Bitcoin transactions are in general not free. A transaction fee is paid by the sender of the funds.') + '\n\n'\
+        msg = _('Bitcoin Quark transactions are in general not free. A transaction fee is paid by the sender of the funds.') + '\n\n'\
               + _('The amount of fee can be decided freely by the sender. However, transactions with low fees take more time to be processed.') + '\n\n'\
               + _('A suggested fee is automatically added to this field. You may override it. The suggested fee increases with the size of the transaction.')
         self.fee_e_label = HelpLabel(_('Fee'), msg)
@@ -1143,7 +1143,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         def feerounding_onclick():
             text = (self.feerounding_text + '\n\n' +
-                    _('To somewhat protect your privacy, Electrum tries to create change with similar precision to other outputs.') + ' ' +
+                    _('To somewhat protect your privacy, Electrum Quark tries to create change with similar precision to other outputs.') + ' ' +
                     _('At most 100 satoshis might be lost due to this rounding.') + ' ' +
                     _("You can disable this setting in '{}'.").format(_('Preferences')) + '\n' +
                     _('Also, dust is not kept as change, but added to the fee.'))
@@ -1466,10 +1466,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         for _type, addr, amount in outputs:
             if addr is None:
-                self.show_error(_('Bitcoin Address is None'))
+                self.show_error(_('Bitcoin Quark Address is None'))
                 return
             if _type == TYPE_ADDRESS and not bitcoin.is_address(addr):
-                self.show_error(_('Invalid Bitcoin Address'))
+                self.show_error(_('Invalid Bitcoin Quark Address'))
                 return
             if amount is None:
                 self.show_error(_('Invalid Amount'))
@@ -1689,7 +1689,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         try:
             out = util.parse_URI(URI, self.on_pr)
         except BaseException as e:
-            self.show_error(_('Invalid bitcoin URI:') + '\n' + str(e))
+            self.show_error(_('Invalid bitcoinquark URI:') + '\n' + str(e))
             return
         self.show_send_tab()
         r = out.get('r')
@@ -2128,14 +2128,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 "private key, and verifying with the corresponding public key. The "
                 "address you have entered does not have a unique public key, so these "
                 "operations cannot be performed.") + '\n\n' + \
-               _('The operation is undefined. Not just in Electrum, but in general.')
+               _('The operation is undefined. Not just in Electrum Quark, but in general.')
 
     @protected
     def do_sign(self, address, message, signature, password):
         address  = address.text().strip()
         message = message.toPlainText().strip()
         if not bitcoin.is_address(address):
-            self.show_message(_('Invalid Bitcoin address.'))
+            self.show_message(_('Invalid Bitcoin Quark address.'))
             return
         if self.wallet.is_watching_only():
             self.show_message(_('This is a watching-only wallet.'))
@@ -2163,7 +2163,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         address  = address.text().strip()
         message = message.toPlainText().strip().encode('utf-8')
         if not bitcoin.is_address(address):
-            self.show_message(_('Invalid Bitcoin address.'))
+            self.show_message(_('Invalid Bitcoin Quark address.'))
             return
         try:
             # This can throw on invalid base64
@@ -2303,8 +2303,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         if not data:
             return
-        # if the user scanned a bitcoin URI
-        if str(data).startswith("bitcoin:"):
+        # if the user scanned a bitcoinquark URI
+        if str(data).startswith("bitcoinquark:"):
             self.pay_to_URI(data)
             return
         # else if the user scanned an offline signed tx
@@ -2326,7 +2326,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             with open(fileName, "r") as f:
                 file_content = f.read()
         except (ValueError, IOError, os.error) as reason:
-            self.show_critical(_("Electrum was unable to open your transaction file") + "\n" + str(reason), title=_("Unable to read file or no transaction found"))
+            self.show_critical(_("Electrum Quark was unable to open your transaction file") + "\n" + str(reason), title=_("Unable to read file or no transaction found"))
             return
         return self.tx_from_text(file_content)
 
@@ -2379,7 +2379,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         e.setReadOnly(True)
         vbox.addWidget(e)
 
-        defaultname = 'electrum-private-keys.csv'
+        defaultname = 'electrum-quark-private-keys.csv'
         select_msg = _('Select file to export your private keys to')
         hbox, filename_e, csv_button = filename_field(self, self.config, defaultname, select_msg)
         vbox.addLayout(hbox)
@@ -2437,7 +2437,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.do_export_privkeys(filename, private_keys, csv_button.isChecked())
         except (IOError, os.error) as reason:
             txt = "\n".join([
-                _("Electrum was unable to produce a private key-export."),
+                _("Electrum Quark was unable to produce a private key-export."),
                 str(reason)
             ])
             self.show_critical(txt, title=_("Unable to create csv"))
@@ -2979,7 +2979,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         run_hook('close_settings_dialog')
         if self.need_restart:
-            self.show_warning(_('Please restart Electrum to activate the new GUI settings'), title=_('Success'))
+            self.show_warning(_('Please restart Electrum Quark to activate the new GUI settings'), title=_('Success'))
 
 
     def closeEvent(self, event):
@@ -3006,7 +3006,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.gui_object.close_window(self)
 
     def plugins_dialog(self):
-        self.pluginsdialog = d = WindowModalDialog(self, _('Electrum Plugins'))
+        self.pluginsdialog = d = WindowModalDialog(self, _('Electrum Quark Plugins'))
 
         plugins = self.gui_object.plugins
 

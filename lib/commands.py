@@ -802,7 +802,7 @@ def add_network_options(parser):
 def add_global_options(parser):
     group = parser.add_argument_group('global options')
     group.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Show debugging information")
-    group.add_argument("-D", "--dir", dest="electrum_path", help="electrum directory")
+    group.add_argument("-D", "--dir", dest="electrum-quark_path", help="electrum quark directory")
     group.add_argument("-P", "--portable", action="store_true", dest="portable", default=False, help="Use local 'electrum_data' directory")
     group.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
     group.add_argument("--testnet", action="store_true", dest="testnet", default=False, help="Use Testnet")
@@ -811,11 +811,11 @@ def add_global_options(parser):
 def get_parser():
     # create main parser
     parser = argparse.ArgumentParser(
-        epilog="Run 'electrum help <command>' to see the help for a command")
+        epilog="Run 'electrum-quark help <command>' to see the help for a command")
     add_global_options(parser)
     subparsers = parser.add_subparsers(dest='cmd', metavar='<command>')
     # gui
-    parser_gui = subparsers.add_parser('gui', description="Run Electrum's Graphical User Interface.", help="Run GUI (default)")
+    parser_gui = subparsers.add_parser('gui', description="Run Electrum Quark's Graphical User Interface.", help="Run GUI (default)")
     parser_gui.add_argument("url", nargs='?', default=None, help="bitcoin URI (or bip70 file)")
     parser_gui.add_argument("-g", "--gui", dest="gui", help="select graphical user interface", choices=['qt', 'kivy', 'text', 'stdio'])
     parser_gui.add_argument("-o", "--offline", action="store_true", dest="offline", default=False, help="Run offline")

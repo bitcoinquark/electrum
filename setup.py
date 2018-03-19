@@ -18,7 +18,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
 version = imp.load_source('version', 'lib/version.py')
 
 if sys.version_info[:3] < (3, 4, 0):
-    sys.exit("Error: Electrum requires Python version >= 3.4.0...")
+    sys.exit("Error: Electrum Quark requires Python version >= 3.4.0...")
 
 data_files = []
 
@@ -34,12 +34,12 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum.desktop']),
-        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum.png'])
+        (os.path.join(usr_share, 'applications/'), ['electrum-quark.desktop']),
+        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum-quark.png'])
     ]
 
 setup(
-    name="Electrum",
+    name="Electrum Quark",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
     packages=[
@@ -77,14 +77,14 @@ setup(
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum'],
+    scripts=['electrum-quark'],
     data_files=data_files,
-    description="Lightweight Bitcoin Wallet",
-    author="Thomas Voegtlin",
-    author_email="thomasv@electrum.org",
+    description="Lightweight Bitcoin Quark Wallet",
+    author="The Bitcoin Quark Developers",
+    author_email="info@bitcoinquark.org",
     license="MIT Licence",
-    url="https://electrum.org",
-    long_description="""Lightweight Bitcoin Wallet"""
+    url="https://bitcoinquark.org",
+    long_description="""Lightweight Bitcoin Quark Wallet"""
 )
 
 # Optional modules (not required to run Electrum)

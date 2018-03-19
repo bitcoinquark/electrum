@@ -584,7 +584,7 @@ class WalletStorage(PrintError):
         if not seed_version:
             seed_version = OLD_SEED_VERSION if len(self.get('master_public_key','')) == 128 else NEW_SEED_VERSION
         if seed_version > FINAL_SEED_VERSION:
-            raise BaseException('This version of Electrum is too old to open this wallet')
+            raise BaseException('This version of Electrum Quark is too old to open this wallet')
         if seed_version==14 and self.get('seed_type') == 'segwit':
             self.raise_unsupported_version(seed_version)
         if seed_version >=12:
@@ -606,5 +606,5 @@ class WalletStorage(PrintError):
                 msg += "\nIt does not contain any keys, and can safely be removed."
             else:
                 # creation was complete if electrum was run from source
-                msg += "\nPlease open this file with Electrum 1.9.8, and move your coins to a new wallet."
+                msg += "\nPlease open this file with Electrum Quark 1.9.8, and move your coins to a new wallet."
         raise BaseException(msg)

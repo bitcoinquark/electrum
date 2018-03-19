@@ -47,7 +47,7 @@ issue_template = """<h2>Traceback</h2>
 
 <h2>Additional information</h2>
 <ul>
-  <li>Electrum version: {app_version}</li>
+  <li>Electrum Quark version: {app_version}</li>
   <li>Operating system: {os}</li>
   <li>Wallet type: {wallet_type}</li>
   <li>Locale: {locale}</li>

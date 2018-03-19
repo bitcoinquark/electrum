@@ -1,0 +1,17 @@
+# If you want electrum-quark to appear in a linux app launcher ("start menu"), install this by doing:
+# sudo desktop-file-install electrum-quark.desktop
+
+[Desktop Entry]
+Comment=Lightweight Bitcoin Quark Client
+Exec=electrum %u
+GenericName[en_US]=Bitcoin Quark Wallet
+GenericName=Bitcoin Quark Wallet
+Icon=electrum
+Name[en_US]=Electrum Bitcoin Quark Wallet
+Name=Electrum Bitcoin Quark Wallet
+Categories=Finance;Network;
+StartupNotify=false
+Terminal=false
+Type=Application
+MimeType=x-scheme-handler/bitcoinquark;
+

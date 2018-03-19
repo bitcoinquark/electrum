@@ -55,7 +55,7 @@ try:
 except Exception as e:
     print(e)
     print("Error: Could not find icons file.")
-    print("Please run 'pyrcc5 icons.qrc -o gui/qt/icons_rc.py', and reinstall Electrum")
+    print("Please run 'pyrcc5 icons.qrc -o gui/qt/icons_rc.py', and reinstall Electrum Quark")
     sys.exit(1)
 
 from .util import *   # * needed for plugins
@@ -96,7 +96,7 @@ class ElectrumGui:
         if hasattr(QtCore.Qt, "AA_ShareOpenGLContexts"):
             QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
         if hasattr(QGuiApplication, 'setDesktopFileName'):
-            QGuiApplication.setDesktopFileName('electrum.desktop')
+            QGuiApplication.setDesktopFileName('electrum-quark.desktop')
         self.config = config
         self.daemon = daemon
         self.plugins = plugins
@@ -110,7 +110,7 @@ class ElectrumGui:
         # init tray
         self.dark_icon = self.config.get("dark_icon", False)
         self.tray = QSystemTrayIcon(self.tray_icon(), None)
-        self.tray.setToolTip('Electrum')
+        self.tray.setToolTip('Electrum Quark')
         self.tray.activated.connect(self.tray_activated)
         self.build_tray_menu()
         self.tray.show()
@@ -132,13 +132,13 @@ class ElectrumGui:
             submenu.addAction(_("Close"), window.close)
         m.addAction(_("Dark/Light"), self.toggle_tray_icon)
         m.addSeparator()
-        m.addAction(_("Exit Electrum"), self.close)
+        m.addAction(_("Exit Electrum Quark"), self.close)
 
     def tray_icon(self):
         if self.dark_icon:
-            return QIcon(':icons/electrum_dark_icon.png')
+            return QIcon(':icons/electrum-quark_dark_icon.png')
         else:
-            return QIcon(':icons/electrum_light_icon.png')
+            return QIcon(':icons/electrum-quark_light_icon.png')
 
     def toggle_tray_icon(self):
         self.dark_icon = not self.dark_icon
