@@ -1,7 +1,7 @@
 {
-    "127.0.0.1": {
+    "testnet-electrumx1.bitcionquark.org": {
         "pruning": "-",
-        "s": "53001",
+        "s": "53002",
         "t": "53001",
         "version": "1.3"
     }
