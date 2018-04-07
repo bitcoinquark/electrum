@@ -3,7 +3,7 @@
 
 [Desktop Entry]
 Comment=Lightweight Bitcoin Quark Client
-Exec=electrum-quark %u
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-quark %u"
 GenericName[en_US]=Bitcoin Quark Wallet
 GenericName=Bitcoin Quark Wallet
 Icon=electrum-quark
@@ -14,4 +14,8 @@ StartupNotify=false
 Terminal=false
 Type=Application
 MimeType=x-scheme-handler/bitcoinquark;
+Actions=Testnet;
 
+[Desktop Action Testnet]
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-quark --testnet %u"
+Name=Testnet mode

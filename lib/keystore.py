@@ -76,6 +76,8 @@ class KeyStore(PrintError):
             return False
         return bool(self.get_tx_derivations(tx))
 
+    def ready_to_sign(self):
+        return not self.is_watching_only()
 
 
 class Software_KeyStore(KeyStore):
@@ -143,6 +145,10 @@ class Imported_KeyStore(Software_KeyStore):
         # re-serialize the key so the internal storage format is consistent
         serialized_privkey = serialize_privkey(
             privkey, compressed, txin_type, internal_use=True)
+        # NOTE: if the same pubkey is reused for multiple addresses (script types),
+        # there will only be one pubkey-privkey pair for it in self.keypairs,
+        # and the privkey will encode a txin_type but that txin_type can not be trusted.
+        # Removing keys complicates this further.
         self.keypairs[pubkey] = pw_encode(serialized_privkey, password)
         return txin_type, pubkey
 
@@ -531,6 +537,17 @@ class Hardware_KeyStore(KeyStore, Xpub):
         xpub = client.get_xpub(derivation, "standard")
         password = self.get_pubkey_from_xpub(xpub, ())
         return password
+
+    def has_usable_connection_with_device(self):
+        if not hasattr(self, 'plugin'):
+            return False
+        client = self.plugin.get_client(self, force_pair=False)
+        if client is None:
+            return False
+        return client.has_usable_connection_with_device()
+
+    def ready_to_sign(self):
+        return super().ready_to_sign() and self.has_usable_connection_with_device()
 
 
 def bip39_normalize_passphrase(passphrase):

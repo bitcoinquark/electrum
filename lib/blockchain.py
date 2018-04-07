@@ -83,6 +83,10 @@ def serialize_header(res, height):
         return s
 
 def deserialize_header(s, height):
+    if not s:
+        raise Exception('Invalid header: {}'.format(s))
+    if len(s) != 80:
+        raise Exception('Invalid header length: {}'.format(len(s)))
     hex_to_int = lambda s: int('0x' + bh2u(s[::-1]), 16)
     h = {}
     if is_bitcoin_quark(height):
@@ -604,6 +608,8 @@ class Blockchain(util.PrintError):
         return c
 
     def can_connect(self, header, check_height=True):
+        if header is None:
+            return False
         height = header['block_height']
         if check_height and self.height() != height - 1:
             #self.print_error("cannot connect at height", height)

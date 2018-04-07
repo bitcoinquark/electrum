@@ -34,7 +34,7 @@ from functools import wraps
 from decimal import Decimal
 
 from .import util
-from .util import bfh, bh2u, format_satoshis, json_decode, print_error
+from .util import bfh, bh2u, format_satoshis, json_decode, print_error, json_encode
 from .import bitcoin
 from .bitcoin import is_address,  hash_160, COIN, TYPE_ADDRESS
 from .i18n import _
@@ -150,11 +150,20 @@ class Commands:
         """Return a configuration variable. """
         return self.config.get(key)
 
+    @classmethod
+    def _setconfig_normalize_value(cls, key, value):
+        if key not in ('rpcuser', 'rpcpassword'):
+            value = json_decode(value)
+            try:
+                value = ast.literal_eval(value)
+            except:
+                pass
+        return value
+
     @command('')
     def setconfig(self, key, value):
         """Set a configuration variable. 'value' may be a string or a Python expression."""
-        if key not in ('rpcuser', 'rpcpassword'):
-            value = json_decode(value)
+        value = self._setconfig_normalize_value(key, value)
         self.config.set_key(key, value)
         return True
 
@@ -201,7 +210,7 @@ class Commands:
         keypairs = {}
         inputs = jsontx.get('inputs')
         outputs = jsontx.get('outputs')
-        locktime = jsontx.get('locktime', 0)
+        locktime = jsontx.get('lockTime', 0)
         for txin in inputs:
             if txin.get('output'):
                 prevout_hash, prevout_n = txin['output'].split(':')
@@ -412,6 +421,8 @@ class Commands:
         tx = self.wallet.make_unsigned_transaction(coins, final_outputs, self.config, fee, change_addr)
         if locktime != None: 
             tx.locktime = locktime
+        if rbf is None:
+            rbf = self.config.get('use_rbf', True)
         if rbf:
             tx.set_rbf(True)
         if not unsigned:
@@ -420,7 +431,7 @@ class Commands:
         return tx
 
     @command('wp')
-    def payto(self, destination, amount, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, rbf=False, password=None, locktime=None):
+    def payto(self, destination, amount, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, rbf=None, password=None, locktime=None):
         """Create a transaction. """
         tx_fee = satoshis(fee)
         domain = from_addr.split(',') if from_addr else None
@@ -428,7 +439,7 @@ class Commands:
         return tx.as_dict()
 
     @command('wp')
-    def paytomany(self, outputs, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, rbf=False, password=None, locktime=None):
+    def paytomany(self, outputs, fee=None, from_addr=None, change_addr=None, nocheck=False, unsigned=False, rbf=None, password=None, locktime=None):
         """Create a multi-output transaction. """
         tx_fee = satoshis(fee)
         domain = from_addr.split(',') if from_addr else None
@@ -449,7 +460,7 @@ class Commands:
             from .exchange_rate import FxThread
             fx = FxThread(self.config, None)
             kwargs['fx'] = fx
-        return self.wallet.get_full_history(**kwargs)
+        return json_encode(self.wallet.get_full_history(**kwargs))
 
     @command('w')
     def setlabel(self, key, label):
