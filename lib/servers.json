@@ -1,11 +1,11 @@
 {
-    "electrumx1.bitcionquark.org": {
+    "electrumx1.bitcoinquark.org": {
         "pruning": "-",
         "s": "52002",
         "t": "52001",
         "version": "1.3"
     },
-    "electrumx2.bitcionquark.org": {
+    "electrumx2.bitcoinquark.org": {
         "pruning": "-",
         "s": "52002",
         "t": "52001",

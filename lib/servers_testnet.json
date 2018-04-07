@@ -1,5 +1,5 @@
 {
-    "testnet-electrumx1.bitcionquark.org": {
+    "testnet-electrumx1.bitcoinquark.org": {
         "pruning": "-",
         "s": "53002",
         "t": "53001",
