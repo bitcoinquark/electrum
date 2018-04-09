@@ -234,14 +234,14 @@ class Blockchain(util.PrintError):
         block_height = header.get('block_height')
         _hash = hash_header(header, block_height)
         if prev_hash != header.get('prev_block_hash'):
-            raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
+            raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
             return
         bits = self.target_to_bits(target)
         if bits != header.get('bits'):
-            raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+            raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
         if int('0x' + _hash, 16) > target:
-            raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
+            raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target))
         if is_bitcoin_quark(block_height):
             header_bytes = bytes.fromhex(serialize_header(header, block_height))
             nonce = uint256_from_bytes(bfh(header.get('nonce'))[::-1])
