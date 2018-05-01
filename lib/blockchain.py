@@ -85,8 +85,8 @@ def serialize_header(res, height):
 def deserialize_header(s, height):
     if not s:
         raise Exception('Invalid header: {}'.format(s))
-    if len(s) != 80:
-        raise Exception('Invalid header length: {}'.format(len(s)))
+    #if len(s) != 80:
+    #    raise Exception('Invalid header length: {}'.format(len(s)))
     hex_to_int = lambda s: int('0x' + bh2u(s[::-1]), 16)
     h = {}
     if is_bitcoin_quark(height):
@@ -487,6 +487,9 @@ class Blockchain(util.PrintError):
             h, t = self.checkpoints[index]
             return t
         
+        last_height = (height - 1)
+        last = self.get_header(last_height, headers)		
+		
         if height % difficulty_adjustment_interval() != 0:
             if constants.net.TESTNET:
                 cur = self.get_header(height, headers)
